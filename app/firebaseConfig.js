@@ -5,12 +5,12 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/
 
 // Replace this config object with your Firebase project config
 const firebaseConfig = {
-  apiKey: "",
-  authDomain:"",
-  projectId:"",
-  storageBucket:"",
-  messagingSenderId:"",
-  appId:"" 
+  apiKey: ,
+  authDomain:,
+  projectId:,
+  storageBucket:,
+  messagingSenderId:,
+  appId:
 };
 
 const app = initializeApp(firebaseConfig);

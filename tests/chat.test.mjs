@@ -35,4 +35,40 @@ test("demo response cites documents and rejects role spoofing", async () => {
   assert.equal(r.status, 400);
 });
 
-test("deployment questions prioritize deployment documentation", () => { assert.equal(retrieve("How do I deploy my project?")[0].id,"deployment"); });
+test("deployment questions prioritize deployment documentation", () => {
+  assert.equal(retrieve("How do I deploy my project?")[0].id, "deployment");
+});
+
+test("quota errors return labeled source excerpts without losing the conversation", async () => {
+  const originalFetch = globalThis.fetch;
+  const oldKey = process.env.GEMINI_API_KEY;
+  process.env.GEMINI_API_KEY = "test-only-key";
+  globalThis.fetch = async () =>
+    new Response(
+      JSON.stringify({
+        error: {
+          code: 429,
+          message: "Quota exhausted",
+          status: "RESOURCE_EXHAUSTED",
+        },
+      }),
+      { status: 429, headers: { "Content-Type": "application/json" } },
+    );
+  try {
+    const response = await POST(
+      req({
+        messages: [{ role: "user", content: "How do I deploy my project?" }],
+        language: "en",
+      }),
+    );
+    assert.equal(response.status, 200);
+    const data = await response.json();
+    assert.equal(data.mode, "knowledge-base");
+    assert.match(data.answer, /Gemini is temporarily unavailable/);
+    assert.ok(data.sources.some((s) => s.id === "deployment"));
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (oldKey === undefined) delete process.env.GEMINI_API_KEY;
+    else process.env.GEMINI_API_KEY = oldKey;
+  }
+});
